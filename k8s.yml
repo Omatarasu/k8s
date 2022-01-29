@@ -1,0 +1,143 @@
+---
+- name: Install k8s 
+  hosts: all
+
+  tasks:
+  - name: Letting iptables see bridged traffic part 1
+    copy: 
+      dest: /etc/modules-load.d/k8s.conf
+      content: br_netfilter
+  - name: Letting iptables see bridged traffic part 2
+    copy:
+      dest: /etc/sysctl.d/k8s.conf
+      content: "net.bridge.bridge-nf-call-ip6tables = 1 \nnet.bridge.bridge-nf-call-iptables = 1"     
+  - name: Letting iptables see bridged traffic part 3
+    shell: sysctl --system
+
+  - name: Install Docker on CentOS
+    block:
+
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+         
+    - name: Remove Some Package
+      dnf:
+        name: 
+        - runc
+        - podman
+        - containers-common
+        state: absent
+
+    - name: Install Docker
+      dnf:
+        name: docker-ce
+        state: present
+    when: ansible_distribution == "CentOS"
+
+  - name: Install Docker on Debian 11
+    block:
+     
+    - name: Install Additionals Package
+      apt:
+        name:
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release 
+        update_cache: yes
+
+    - name: Import GPG key
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    - name: Import Repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/debian bullseye stable
+        state: present 
+
+    - name: Install Docker 
+      apt: 
+        name: docker-ce 
+        state: present
+        update_cache: yes
+
+    when: ansible_distribution == "Debian"
+
+  - name: Start And Enable Docker 
+    service: 
+      name: docker 
+      state: started 
+      enabled: yes
+
+  - name: Install kubeadm kubelet and kubectl on CentOS
+    block: 
+
+    - name: Add Repo 
+      copy: 
+        src: ./kubernetes.repo
+        dest: /etc/yum.repos.d/kubernetes.repo
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+
+    - name: Disable SELINUX part 1
+      lineinfile: 
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=permissive'
+
+    - name: Disable SELINUX part 2
+      shell: setenforce 0
+    - name: Disable Firewalld
+      service: 
+        name: firewalld
+        state: stoped
+        enabled: no
+    - name: Install packages 
+      dnf:
+        disable_excludes: kubernetes
+        name: 
+        - kubelet
+        - kubeadm
+        - kubectl
+        state: present
+    when: ansible_distribution == "CentOS"
+  
+  - name: Install kubeadm kubelet and kubectl on Debian 11
+    block: 
+    - name: Installing need packages
+      apt: 
+        name:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        update_cache: yes
+    - name: Import GPG key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Import Repo
+      apt_repository:
+        repo: deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present 
+    - name: Install packages
+      apt: 
+        name: 
+        - kubelet
+        - kubeadm
+        - kubectl
+        update_cache: yes
+    when: ansible_distribution == "Debian"
+        
+
+  - name: Enable kubelet 
+    service: 
+      name: kubelet
+      state: started
+      enabled: yes
+...
+
