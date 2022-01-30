@@ -1,0 +1,72 @@
+- name: Install k8s 
+  hosts: all
+  tasks:
+
+  - name: Install kubeadm kubelet and kubectl on CentOS
+    block: 
+
+    - name: Add Repo 
+      copy: 
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+          exclude=kubelet kubeadm kubectl
+        dest: /etc/yum.repos.d/kubernetes.repo
+
+    - name: Disable SELINUX part 1
+      lineinfile: 
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=permissive'
+
+    - name: Disable SELINUX part 2
+      shell: setenforce 0
+
+    - name: Install packages 
+      dnf:
+        disable_excludes: kubernetes
+        name: 
+        - kubelet
+        - kubeadm
+        - kubectl
+        state: present
+    when: ansible_distribution == "CentOS"
+  
+  - name: Install kubeadm kubelet and kubectl on Debian
+    block: 
+    - name: Installing need packages
+      apt: 
+        name:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        update_cache: yes
+    - name: Import GPG key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Import Repo
+      apt_repository:
+        repo: deb [arch=amd64] https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present 
+    - name: Install packages
+      apt: 
+        name: 
+        - kubelet
+        - kubeadm
+        - kubectl
+        update_cache: yes
+    when: ansible_distribution == "Debian"
+        
+
+  - name: Enable kubelet 
+    service: 
+      name: kubelet
+      state: started
+      enabled: yes
