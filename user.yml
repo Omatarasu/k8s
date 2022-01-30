@@ -6,6 +6,12 @@
         append: yes
         state: present
         shell: /bin/bash
+    - name: Install sudo on Debain 
+      apt:
+        name: sudo
+        state: present 
+        update_cache: yes
+      when: ansible_distribution == "Debian" 
     - name: allow sudo without password
       lineinfile:
         dest: /etc/sudoers
