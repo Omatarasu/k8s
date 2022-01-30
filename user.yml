@@ -1,0 +1,13 @@
+- hosts: all
+  tasks:
+    - name: create k8s user
+      user:
+        name: k8s-admin
+        append: yes
+        state: present
+        shell: bin/bash
+    - name: allow sudo without password
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'k8s-admin ALL=(ALL) NOPASSWD: ALL' 
+        validate: 'visudo -cf %s'
