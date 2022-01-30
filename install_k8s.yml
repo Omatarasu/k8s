@@ -31,9 +31,9 @@
       dnf:
         disable_excludes: kubernetes
         name: 
-        - kubelet
-        - kubeadm
-        - kubectl
+        - kubelet=1.23.3
+        - kubeadm=1.23.3
+        - kubectl=1.23.3
         state: present
     when: ansible_distribution == "CentOS"
   
@@ -58,9 +58,9 @@
     - name: Install packages
       apt: 
         name: 
-        - kubelet
-        - kubeadm
-        - kubectl
+        - kubelet=1.23.3
+        - kubeadm=1.23.3
+        - kubectl=1.23.3
         update_cache: yes
     when: ansible_distribution == "Debian"
         
