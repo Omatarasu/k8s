@@ -6,11 +6,12 @@
         state: directory
     
     - name: Changing Cgroup Driver to systemd
-      copy: "/etc/docker/daemon.json"
-      content: |
-        {
-        "exec-opts": ["native.cgroupdriver=systemd"]
-        }
+      copy: 
+        dest: "/etc/docker/daemon.json"
+        content: |
+          {
+          "exec-opts": ["native.cgroupdriver=systemd"]
+          }
     - block:
 
         - name: Add Docker repo
